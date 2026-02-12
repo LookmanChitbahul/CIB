@@ -29,10 +29,13 @@ const Dashboard = () => {
 
     if (isLoading) return <div className="flex justify-center items-center h-[70vh]"><Spin size="large" tip="Loading statistics..." /></div>;
     if (isError) return <div className="text-center text-red-500 py-20 font-medium">Failed to load dashboard statistics.</div>;
-    if (!stats) return <Empty className="py-20" description="No project data available." />;
 
-    const pieData = stats.projectsByType.map(item => ({ name: item.type, value: item.count }));
-    const barData = stats.projectsOverTime.map(item => ({ name: item.date, count: item.count }));
+    // Check if stats has the expected structure to avoid crashes
+    const isValidStats = stats && typeof stats === 'object' && !Array.isArray(stats);
+    if (!isValidStats) return <Empty className="py-20" description="No project data available or API error." />;
+
+    const pieData = (stats.projectsByType || []).map(item => ({ name: item.type, value: item.count }));
+    const barData = (stats.projectsOverTime || []).map(item => ({ name: item.date, count: item.count }));
 
     const getTypeIcon = (type) => {
         switch (type) {

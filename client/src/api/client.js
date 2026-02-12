@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const isProd = import.meta.env.PROD;
+const baseURL = isProd ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 const apiClient = axios.create({
     baseURL,
