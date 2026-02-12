@@ -1,12 +1,20 @@
 {
     "rewrites": [
         {
-            "source": "/api/(.*)",
+            "source": "/api/:path*",
             "destination": "/server/index.js"
         },
         {
-            "source": "/(.*)",
-            "destination": "/client/index.html"
+            "source": "/assets/:path*",
+            "destination": "/client/dist/assets/:path*"
+        },
+        {
+            "source": "/favicon.svg",
+            "destination": "/client/dist/favicon.svg"
+        },
+        {
+            "source": "/:path((?!api/).*)",
+            "destination": "/client/dist/index.html"
         }
     ]
 }
