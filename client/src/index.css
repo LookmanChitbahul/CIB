@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1677ff;
+  --color-primary-hover: #4096ff;
+  --color-primary-active: #0958d9;
+}
+
+:root {
+  --ant-primary-color: #1677ff;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  /* Slightly off-white background for depth */
+  color: #0f172a;
+  /* Slate 900 for main text */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Ant Design Global Overrides for Light Theme */
+.ant-layout {
+  background: transparent !important;
+}
+
+.ant-layout-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ant-layout-sider {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0;
+}
+
+.ant-menu {
+  background: transparent !important;
+  color: #475569 !important;
+  /* Slate 600 */
+}
+
+.ant-menu-item-selected {
+  background-color: #eff6ff !important;
+  /* Blue 50 */
+  color: #1677ff !important;
+  font-weight: 600;
+}
+
+/* Input Fields & Form Controls - Modern, Clean, Spacious */
+.ant-input,
+.ant-input-number-input,
+.ant-picker-input>input,
+.ant-select-selection-item {
+  color: #0f172a !important;
+  /* Force black text */
+  font-weight: 500;
+}
+
+.ant-input::placeholder {
+  color: #94a3b8 !important;
+  /* Slate 400 */
+}
+
+/* Form Item Label */
+.ant-form-item-label>label {
+  color: #334155 !important;
+  /* Slate 700 */
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Table Styles - Crystal Clear */
+.ant-table {
+  background: #ffffff !important;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.ant-table-thead>tr>th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  /* Slate 600 */
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.ant-table-tbody>tr>td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #0f172a !important;
+  /* Slate 900 */
+}
+
+.ant-table-tbody>tr:hover>td {
+  background-color: #f8fafc !important;
+}
+
+/* React Resizable Styles */
+.react-resizable {
+  position: relative;
+  background-clip: padding-box;
+}
+
+.react-resizable-handle {
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  bottom: 0;
+  right: -5px;
+  cursor: col-resize;
+  z-index: 10;
+}

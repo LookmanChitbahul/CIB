@@ -1,0 +1,17 @@
+{
+    "name": "cib-project-system",
+    "version": "1.0.0",
+    "description": "CIB Projects Management System - Full Stack",
+    "scripts": {
+        "install:server": "cd server && npm install",
+        "install:client": "cd client && npm install",
+        "install-all": "npm run install:server && npm run install:client",
+        "postinstall": "npm run install-all",
+        "start:server": "cd server && npm run dev",
+        "start:client": "cd client && npm run dev",
+        "dev": "concurrently \"npm run start:server\" \"npm run start:client\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}

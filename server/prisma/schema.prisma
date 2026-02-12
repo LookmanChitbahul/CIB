@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectType {
+  NEW
+  ONGOING
+  ON_HOLD
+  COMPLETED
+}
+
+enum FundType {
+  YES
+  NO
+  FUNDED
+}
+
+model Project {
+  id                  Int         @id @default(autoincrement())
+  pid                 Int         @unique
+  projectName         String
+  ministryDept        String
+  type                ProjectType
+  description         String      @db.Text
+  startDate           DateTime
+  completionDate      DateTime?
+  leadProgrammeManager String
+  programmeManager    String
+  status              String      @db.Text // Narrative meeting/progress description
+  contractValue       String      // Stored as text per requirement
+  fundAvailable       FundType
+  isDraft             Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
