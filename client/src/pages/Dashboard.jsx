@@ -34,8 +34,8 @@ const Dashboard = () => {
     const isValidStats = stats && typeof stats === 'object' && !Array.isArray(stats);
     if (!isValidStats) return <Empty className="py-20" description="No project data available or API error." />;
 
-    const pieData = (stats.projectsByType || []).map(item => ({ name: item.type, value: item.count }));
-    const barData = (stats.projectsOverTime || []).map(item => ({ name: item.date, count: item.count }));
+    const pieData = (stats?.projectsByType || []).map(item => ({ name: item?.type || 'Unknown', value: item?.count || 0 }));
+    const barData = (stats?.projectsOverTime || []).map(item => ({ name: item?.date || '', count: item?.count || 0 }));
 
     const getTypeIcon = (type) => {
         switch (type) {
@@ -74,7 +74,7 @@ const Dashboard = () => {
             title: 'Last Updated',
             dataIndex: 'updatedAt',
             key: 'updatedAt',
-            render: (text) => <span className="text-slate-400 text-xs">{new Date(text).toLocaleDateString()}</span>
+            render: (text) => <span className="text-slate-400 text-xs">{text ? new Date(text).toLocaleDateString() : 'N/A'}</span>
         },
     ];
 
@@ -84,10 +84,10 @@ const Dashboard = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Project Dashboard</h1>
-                    <p className="text-slate-500 font-medium">System Overview: {stats.totalProjects} active projects.</p>
+                    <p className="text-slate-500 font-medium">System Overview: {stats?.totalProjects || 0} active projects.</p>
                 </div>
                 {/* Drafts Notification - Refined */}
-                {stats.totalDrafts > 0 && (
+                {(stats?.totalDrafts || 0) > 0 && (
                     <div className="bg-white border border-amber-200 shadow-sm px-4 py-2 rounded-full flex items-center gap-3 animate-pulse-slow">
                         <SyncOutlined spin className="text-amber-500" />
                         <span className="text-amber-700 font-semibold text-sm">
@@ -107,7 +107,7 @@ const Dashboard = () => {
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Active Projects</span>
                     </div>
                     <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats.totalProjects}
+                        {stats?.totalProjects || 0}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">PRODUCTION</div>
                 </div>
@@ -120,7 +120,7 @@ const Dashboard = () => {
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Completed</span>
                     </div>
                     <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats.projectsByType.find(p => p.type === 'COMPLETED')?.count || 0}
+                        {stats?.projectsByType?.find(p => p.type === 'COMPLETED')?.count || 0}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">ARCHIVED</div>
                 </div>
@@ -133,7 +133,7 @@ const Dashboard = () => {
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Ongoing</span>
                     </div>
                     <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats.projectsByType.find(p => p.type === 'ONGOING')?.count || 0}
+                        {stats?.projectsByType?.find(p => p.type === 'ONGOING')?.count || 0}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">IN PROGRESS</div>
                 </div>
@@ -146,7 +146,7 @@ const Dashboard = () => {
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Drafts</span>
                     </div>
                     <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats.totalDrafts}
+                        {stats?.totalDrafts || 0}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">LOCAL SAVES</div>
                 </div>

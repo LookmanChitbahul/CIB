@@ -6,12 +6,12 @@
             "destination": "/server/index.js"
         },
         {
-            "source": "/assets/:path*",
-            "destination": "/client/dist/assets/:path*"
+            "source": "/(assets/.*)",
+            "destination": "/client/dist/$1"
         },
         {
-            "source": "/favicon.svg",
-            "destination": "/client/dist/favicon.svg"
+            "source": "/(.*\\.[a-z0-9]+)$",
+            "destination": "/client/dist/$1"
         },
         {
             "source": "/(.*)",
