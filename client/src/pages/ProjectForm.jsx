@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Select, Button, message, Row, Col, Divider, DatePicker } from 'antd';
+import { Form, Input, Select, Button, Row, Col, Divider, DatePicker, App } from 'antd';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -26,6 +26,7 @@ const ProjectForm = ({ isEdit = false }) => {
     const { id } = useParams();
     const queryClient = useQueryClient();
     const { isDarkMode } = useTheme();
+    const { message: messageApi } = App.useApp();
 
     const effectiveIsEdit = isEdit || !!id;
 
@@ -78,14 +79,14 @@ const ProjectForm = ({ isEdit = false }) => {
             return effectiveIsEdit ? updateProject(id, payload) : createProject(payload);
         },
         onSuccess: () => {
-            message.success(effectiveIsEdit ? 'Registry updated successfully' : 'New project registered in matrix');
+            messageApi.success(effectiveIsEdit ? 'Registry updated successfully' : 'New project registered in matrix');
             clearDraft();
             queryClient.invalidateQueries(['projects']);
             navigate('/projects');
         },
         onError: (error) => {
             const errorMsg = error.response?.data?.error || 'Operation failed. Please verify matrix integrity.';
-            message.error(errorMsg);
+            messageApi.error(errorMsg);
         }
     });
 
@@ -166,6 +167,7 @@ const ProjectForm = ({ isEdit = false }) => {
                                     <Option value="ONGOING">Ongoing Flow</Option>
                                     <Option value="ON_HOLD">On Hold</Option>
                                     <Option value="COMPLETED">Finalized Node</Option>
+                                    <Option value="OVERDUE">Overdue Signal</Option>
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -231,6 +233,17 @@ const ProjectForm = ({ isEdit = false }) => {
                             <Form.Item
                                 name="completionDate"
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Completion Date</span>}
+                                dependencies={['startDate']}
+                                rules={[
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            if (!value || !getFieldValue('startDate') || value.isAfter(getFieldValue('startDate')) || value.isSame(getFieldValue('startDate'))) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('Completion date cannot be before the start date.'));
+                                        },
+                                    }),
+                                ]}
                             >
                                 <DatePicker className="w-full h-12 !rounded-xl" />
                             </Form.Item>

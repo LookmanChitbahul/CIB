@@ -29,8 +29,15 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!', details: err.message });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+});
+
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error('Error: Port 3001 is already in use. Please run "taskkill /F /IM node.exe" to clear stale processes.');
+        process.exit(1);
+    }
 });
 
 module.exports = app;

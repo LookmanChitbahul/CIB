@@ -27,7 +27,13 @@ const Dashboard = () => {
         }
     });
 
-    if (isLoading) return <div className="flex justify-center items-center h-[70vh]"><Spin size="large" tip="Loading statistics..." /></div>;
+    if (isLoading) return (
+        <div className="flex justify-center items-center h-[70vh]">
+            <Spin size="large" tip="Loading statistics...">
+                <div style={{ padding: 50 }} />
+            </Spin>
+        </div>
+    );
     if (isError) return <div className="text-center text-red-500 py-20 font-medium">Failed to load dashboard statistics.</div>;
 
     const isValidStats = stats && typeof stats === 'object' && !Array.isArray(stats);

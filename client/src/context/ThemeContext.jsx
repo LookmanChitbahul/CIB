@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App } from 'antd';
 
 const ThemeContext = createContext();
 
@@ -65,9 +65,11 @@ export const ThemeProvider = ({ children }) => {
                     }
                 }}
             >
-                <div className={`min-h-screen transition-all duration-500 font-sans ${isDarkMode ? 'bg-gray-950 text-slate-100' : 'bg-gray-50 text-slate-900'}`}>
-                    {children}
-                </div>
+                <App>
+                    <div className={`min-h-screen transition-all duration-500 font-sans ${isDarkMode ? 'bg-gray-950 text-slate-100' : 'bg-gray-50 text-slate-900'}`}>
+                        {children}
+                    </div>
+                </App>
             </ConfigProvider>
         </ThemeContext.Provider>
     );
