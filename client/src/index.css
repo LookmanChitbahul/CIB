@@ -1,14 +1,11 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-primary: #1677ff;
   --color-primary-hover: #4096ff;
   --color-primary-active: #0958d9;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --radius-3xl: 24px;
-}
-
-:root {
   --ant-primary-color: #1677ff;
   --bg-main: #f9fafb;
   --bg-card: #ffffff;
@@ -16,6 +13,33 @@
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
   --accent-color: #000000;
+}
+
+/* Markdown Content Styling */
+.markdown-content ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
 }
 
 .dark {
@@ -146,6 +170,51 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 3s infinite;
+}
+
+/* Chatbot Resizer */
+.chatbot-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 1001;
+  transition: all 0.3s ease;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatbot-resizer::after {
+  content: '';
+  width: 2px;
+  height: 40px;
+  background: var(--border-color);
+  border-radius: 2px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.chatbot-resizer:hover::after,
+.chatbot-resizer:active::after {
+  height: 100%;
+  background: var(--accent-color);
+  opacity: 1;
+}
+
+.chatbot-resizer:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .chatbot-resizer:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.custom-chat-drawer .ant-drawer-content {
+  border-left: 1px solid var(--border-color);
 }
 
 /* React Resizable */
