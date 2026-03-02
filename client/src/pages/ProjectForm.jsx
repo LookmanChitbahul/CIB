@@ -1,326 +1,168 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Select, DatePicker, Button, notification, Spin, Breadcrumb, Divider } from 'antd';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Form, Input, Select, Button, message, Row, Col, Divider, Typography } from 'antd';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { getProject, createProject, updateProject } from '../api/client';
+import { createProject, getProjectById, updateProject } from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 import {
-    LeftOutlined,
-    FileTextOutlined,
-    CloudUploadOutlined,
+    SaveOutlined,
+    CloseOutlined,
+    ProjectOutlined,
+    InfoCircleOutlined,
+    DollarCircleOutlined
 } from '@ant-design/icons';
 
 const { Option } = Select;
-const { TextArea } = Input;
 
-const ProjectForm = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
+const ProjectForm = ({ isEdit = false }) => {
     const [form] = Form.useForm();
+    const navigate = useNavigate();
+    const { id } = useParams();
     const queryClient = useQueryClient();
-    const isEditMode = !!id;
+    const { isDarkMode } = useTheme();
 
-    const { data: projectData, isLoading: isFetching } = useQuery({
+    // If id exists in params, it's edit mode regardless of the prop
+    const effectiveIsEdit = isEdit || !!id;
+
+    const { data: project, isLoading: isFetching } = useQuery({
         queryKey: ['project', id],
-        queryFn: () => getProject(id),
-        enabled: isEditMode,
-        staleTime: 0,
+        queryFn: () => getProjectById(id),
+        enabled: effectiveIsEdit && !!id,
     });
 
-    const storageKey = isEditMode ? `cib_draft_${id}` : 'cib_draft_new';
-
     useEffect(() => {
-        const loadData = () => {
-            const saved = localStorage.getItem(storageKey);
-            let initial = {};
-
-            if (projectData?.data) {
-                const d = projectData.data;
-                initial = {
-                    ...d,
-                    pid: d.pid.toString(),
-                    startDate: d.startDate ? dayjs(d.startDate) : null,
-                    completionDate: d.completionDate ? dayjs(d.completionDate) : null,
-                };
-            }
-
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.startDate) parsed.startDate = dayjs(parsed.startDate);
-                    if (parsed.completionDate) parsed.completionDate = dayjs(parsed.completionDate);
-
-                    initial = { ...initial, ...parsed };
-
-                    notification.info({
-                        message: 'Unsaved Changes Restored',
-                        description: 'We restored your last uncommitted edits.',
-                        duration: 3,
-                        key: 'draft_restore'
-                    });
-                } catch (e) {
-                    console.error("Draft parse error", e);
-                }
-            }
-
-            if (Object.keys(initial).length > 0) {
-                form.setFieldsValue(initial);
-            }
-        };
-
-        loadData();
-    }, [projectData, form, storageKey]);
-
-    const handleValuesChange = (_, allValues) => {
-        localStorage.setItem(storageKey, JSON.stringify(allValues));
-    };
+        if (project?.data) {
+            const formData = { ...project.data };
+            if (formData.updatedAt) formData.updatedAt = dayjs(formData.updatedAt);
+            form.setFieldsValue(formData);
+        }
+    }, [project, form]);
 
     const mutation = useMutation({
-        mutationFn: ({ values, isDraft }) => {
-            const payload = {
-                ...values,
-                pid: parseInt(values.pid),
-                startDate: values.startDate ? values.startDate.toISOString() : null,
-                completionDate: values.completionDate ? values.completionDate.toISOString() : null,
-                isDraft: isDraft
-            };
-
-            if (isEditMode) {
-                return updateProject(id, payload);
-            }
-            return createProject(payload);
-        },
-        onSuccess: (_, { isDraft }) => {
-            localStorage.removeItem(storageKey);
-            notification.success({
-                message: isDraft ? 'Draft Saved' : 'Project Published',
-                description: isDraft
-                    ? 'Your changes have been saved to the drafts repository.'
-                    : 'Project record is now live and visible in the public matrix.'
-            });
+        mutationFn: (values) => effectiveIsEdit ? updateProject(id, values) : createProject(values),
+        onSuccess: () => {
+            message.success(effectiveIsEdit ? 'Registry updated successfully' : 'New project registered in matrix');
             queryClient.invalidateQueries(['projects']);
             navigate('/projects');
         },
-        onError: (error) => {
-            notification.error({
-                message: 'Deployment Error',
-                description: error.response?.data?.error || error.message
-            });
+        onError: () => {
+            message.error('Operation failed. Please verify matrix integrity.');
         }
     });
 
     const onFinish = (values) => {
-        mutation.mutate({ values, isDraft: false });
+        // Ensure values are clean
+        mutation.mutate(values);
     };
 
-    const handleSaveDraft = async () => {
-        try {
-            const values = await form.validateFields();
-            mutation.mutate({ values, isDraft: true });
-        } catch (error) {
-            notification.warning({ message: 'Validation Failed', description: 'Please fill in basic identity fields before saving as draft.' });
-        }
-    };
-
-    if (isEditMode && isFetching) {
-        return <div className="flex justify-center items-center h-[70vh]"><Spin size="large" tip="Retrieving record..." /></div>;
+    if (effectiveIsEdit && isFetching) {
+        return <div className="flex justify-center items-center h-64 text-blue-500 font-bold tracking-widest">DECRYPTING RECORD...</div>;
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 py-8 animate-in fade-in slide-in-from-top-4 duration-700">
-            {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-                <div className="space-y-2">
-                    <Breadcrumb
-                        items={[
-                            { title: <Link className="text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:text-blue-600" to="/">Hub</Link> },
-                            { title: <Link className="text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:text-blue-600" to="/projects">Records</Link> },
-                            { title: <span className="text-blue-600 font-bold uppercase text-[10px] tracking-widest">{isEditMode ? 'Edit' : 'Genesis'}</span> }
-                        ]}
-                        separator={<span className="text-slate-300">/</span>}
-                    />
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 leading-none">
-                        {isEditMode ? "Modify Operational Unit" : "Project Registration"}
+        <div className="max-w-5xl mx-auto py-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="mb-12 flex items-center justify-between">
+                <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                        Data Intake Protocol
+                    </div>
+                    <h1 className={`text-4xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        {effectiveIsEdit ? 'Modify Record' : 'Registry Entry'}
                     </h1>
-                    <p className="text-slate-500 font-medium text-base">Input protocol for strategic project data entry.</p>
+                    <p className="text-slate-400 font-medium text-lg mt-2">
+                        {effectiveIsEdit ? 'Updating existing operational parameters within the registry.' : 'Establishing new project nodes in the CIB encrypted matrix.'}
+                    </p>
                 </div>
-                <Button
-                    size="large"
-                    icon={<LeftOutlined />}
-                    onClick={() => navigate('/projects')}
-                    className="rounded-xl border-slate-200 shadow-sm hover:shadow hover:border-slate-300 hover:text-slate-700 transition-all h-10 px-6 font-bold text-slate-500 bg-white"
-                >
-                    Cancel
-                </Button>
+                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-3xl shadow-2xl ${isDarkMode ? 'bg-gray-900 text-blue-500 border border-slate-800' : 'bg-white text-black dribbble-shadow'}`}>
+                    <ProjectOutlined />
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex justify-between items-center">
-                    <div className="space-y-1">
-                        <h3 className="font-bold text-lg text-slate-900 flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">01</span>
-                            Project Details
-                        </h3>
-                        <p className="text-slate-500 text-sm pl-11">Enter the core information for this project record.</p>
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={onFinish}
+                requiredMark={false}
+                className="space-y-10"
+            >
+                <div className={`glass-card dribbble-shadow p-12 relative overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+                    <div className="flex items-center gap-3 mb-10">
+                        <InfoCircleOutlined className="text-blue-500 text-xl" />
+                        <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Primary Identification</h3>
                     </div>
-                    <div className="hidden md:block">
-                        <div className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${projectData?.data?.isDraft ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                            Status: {isEditMode ? (projectData?.data?.isDraft ? 'Draft' : 'Active') : 'New Entry'}
-                        </div>
-                    </div>
-                </div>
 
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={onFinish}
-                    onValuesChange={handleValuesChange}
-                    initialValues={{ type: 'NEW', fundAvailable: 'NO' }}
-                    className="p-8"
-                    requiredMark={true}
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-                        {/* PID Section */}
-                        <div className="space-y-6">
-                            <Form.Item
-                                name="pid"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Project ID (PID)</span>}
-                                rules={[{ required: true, message: 'ID required' }]}
-                            >
-                                <Input
-                                    size="large"
-                                    type="number"
-                                    placeholder="Enter PID"
-                                    disabled={isEditMode}
-                                    className="rounded-lg font-medium text-slate-900 border-slate-300 focus:border-blue-500 hover:border-slate-400 py-2.5 bg-white"
-                                />
-                            </Form.Item>
-
+                    <Row gutter={[48, 32]}>
+                        <Col xs={24} md={12}>
                             <Form.Item
                                 name="projectName"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Project Name</span>}
-                                rules={[{ required: true }]}
+                                label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest\">Entity Name</span>}
+                                rules={[{ required: true, message: 'Identity required' }]}
                             >
-                                <Input
-                                    size="large"
-                                    placeholder="Enter full project title"
-                                    className="rounded-lg font-medium text-slate-900 border-slate-300 focus:border-blue-500 hover:border-slate-400 py-2.5"
-                                />
+                                <Input prefix={<ProjectOutlined className="text-slate-300 mr-2" />} placeholder="Enter formal title..." className="h-14 !rounded-2xl" />
                             </Form.Item>
-                        </div>
-
-                        {/* Managers Section */}
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-5">
-                                <Form.Item name="leadProgrammeManager" label={<span className="font-semibold text-slate-700 block mb-1">Lead PgM</span>} rules={[{ required: true }]}>
-                                    <Input size="large" className="rounded-lg text-slate-900 border-slate-300 py-2.5" placeholder="Name" />
-                                </Form.Item>
-
-                                <Form.Item name="programmeManager" label={<span className="font-semibold text-slate-700 block mb-1">Unit Manager</span>} rules={[{ required: true }]}>
-                                    <Input size="large" className="rounded-lg text-slate-900 border-slate-300 py-2.5" placeholder="Name" />
-                                </Form.Item>
-                            </div>
-
-                            <Form.Item
-                                name="ministryDept"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Ministry / Department</span>}
-                                rules={[{ required: true }]}
-                            >
-                                <Input size="large" placeholder="e.g. Ministry of Works" className="rounded-lg text-slate-900 border-slate-300 py-2.5" />
-                            </Form.Item>
-                        </div>
-
-                        <Divider className="md:col-span-2 border-slate-100 my-2" />
-
-                        {/* Classification & Funding */}
-                        <div className="grid grid-cols-2 gap-10">
+                        </Col>
+                        <Col xs={24} md={12}>
                             <Form.Item
                                 name="type"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Project Type</span>}
-                                rules={[{ required: true }]}
+                                label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest\">Operational Protocol</span>}
+                                rules={[{ required: true, message: 'Protocol required' }]}
                             >
-                                <Select size="large" className="rounded-lg font-medium">
-                                    <Option value="NEW">New</Option>
-                                    <Option value="ONGOING">Ongoing</Option>
-                                    <Option value="ON_HOLD">On Hold</Option>
-                                    <Option value="COMPLETED">Completed</Option>
+                                <Select placeholder="Select status..." className="h-14 !rounded-2xl custom-select-glow">
+                                    <Option value="NEW">New Registry</Option>
+                                    <Option value="ONGOING">Ongoing Flow</Option>
+                                    <Option value="COMPLETED">Finalized Node</Option>
                                 </Select>
                             </Form.Item>
+                        </Col>
+                    </Row>
 
-                            <Form.Item
-                                name="fundAvailable"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Funding Available</span>}
-                                rules={[{ required: true }]}
-                            >
-                                <Select size="large" className="rounded-lg font-medium">
-                                    <Option value="YES">Yes</Option>
-                                    <Option value="NO">No</Option>
-                                    <Option value="FUNDED">Funded</Option>
-                                </Select>
-                            </Form.Item>
-                        </div>
+                    <Divider className="my-10 opacity-50" />
 
-                        {/* Value & Dates */}
-                        <div className="space-y-6">
-                            <Form.Item name="contractValue" label={<span className="font-semibold text-slate-700 block mb-1">Contract Value</span>} rules={[{ required: true }]}>
-                                <Input size="large" placeholder="0.00" className="rounded-lg font-medium text-slate-900 border-slate-300 py-2.5" />
-                            </Form.Item>
-
-                            <div className="grid grid-cols-2 gap-5">
-                                <Form.Item name="startDate" label={<span className="font-semibold text-slate-700 block mb-1">Start Date</span>} rules={[{ required: true }]}>
-                                    <DatePicker size="large" className="w-full rounded-lg" />
-                                </Form.Item>
-
-                                <Form.Item name="completionDate" label={<span className="font-semibold text-slate-700 block mb-1">Completion Date</span>}>
-                                    <DatePicker size="large" className="w-full rounded-lg" />
-                                </Form.Item>
-                            </div>
-                        </div>
-
-                        {/* Descriptions */}
-                        <div className="md:col-span-2 space-y-8">
-                            <Form.Item
-                                name="description"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Project Description</span>}
-                                rules={[{ required: true }]}
-                            >
-                                <TextArea rows={4} className="rounded-lg text-slate-900 border-slate-300 py-3" placeholder="Enter detailed project description..." />
-                            </Form.Item>
-
-                            <Form.Item
-                                name="status"
-                                label={<span className="font-semibold text-slate-700 block mb-1">Progress Status</span>}
-                                rules={[{ required: true }]}
-                            >
-                                <TextArea rows={3} placeholder="Current progress update..." className="rounded-lg text-slate-900 border-slate-300 py-3" />
-                            </Form.Item>
-                        </div>
+                    <div className="flex items-center gap-3 mb-10">
+                        <DollarCircleOutlined className="text-blue-500 text-xl" />
+                        <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Financial Parameters</h3>
                     </div>
 
-                    {/* Form Controls */}
-                    <div className="mt-12 flex flex-col md:flex-row justify-end gap-4 pt-8 border-t border-slate-100">
-                        <Button
-                            size="large"
-                            icon={<FileTextOutlined />}
-                            onClick={handleSaveDraft}
-                            loading={mutation.isPending && mutation.variables?.isDraft}
-                            className="rounded-lg h-12 px-8 font-bold text-slate-600 hover:text-blue-600 hover:border-blue-200 border-slate-200"
-                        >
-                            Save Draft
-                        </Button>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            loading={mutation.isPending && !mutation.variables?.isDraft}
-                            size="large"
-                            icon={<CloudUploadOutlined />}
-                            className="bg-blue-600 hover:bg-blue-500 rounded-lg h-12 px-10 font-bold text-white shadow-md hover:shadow-lg transition-all"
-                        >
-                            {isEditMode && !projectData?.data?.isDraft ? 'Update Project' : 'Initialize Project'}
-                        </Button>
-                    </div>
-                </Form>
-            </div>
+                    <Row gutter={[48, 32]}>
+                        <Col xs={24} md={24}>
+                            <Form.Item
+                                name="contractValue"
+                                label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest\">Agreed Valuation</span>}
+                            >
+                                <Input
+                                    prefix={<span className="text-slate-300 font-bold mr-2 text-lg">$</span>}
+                                    placeholder="Enter numerical value..."
+                                    className="h-14 !rounded-2xl text-xl font-black tracking-tight"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </div>
+
+                <div className="flex items-center justify-end gap-6 pt-4">
+                    <Button
+                        size="large"
+                        shape="round"
+                        icon={<CloseOutlined />}
+                        onClick={() => navigate('/projects')}
+                        className={`h-16 px-10 font-black tracking-widest uppercase text-[10px] border-none shadow-lg ${isDarkMode ? 'bg-gray-900 text-slate-400 hover:text-white' : 'bg-white text-slate-500'}`}
+                    >
+                        Abort
+                    </Button>
+                    <Button
+                        type="primary"
+                        htmlType="submit"
+                        size="large"
+                        shape="round"
+                        icon={<SaveOutlined />}
+                        loading={mutation.isPending}
+                        className="h-16 px-12 font-black tracking-widest uppercase text-[10px] bg-black dark:bg-blue-600 border-none shadow-2xl shadow-blue-500/30 hover:scale-105 transition-transform text-white"
+                    >
+                        Commit Transaction
+                    </Button>
+                </div>
+            </Form>
         </div>
     );
 };

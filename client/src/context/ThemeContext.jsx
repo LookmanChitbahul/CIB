@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ConfigProvider, theme } from 'antd';
 
 const ThemeContext = createContext();
@@ -6,55 +6,68 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-    // Strictly enforcing Light Mode
-    const isDarkMode = false;
-    const toggleTheme = () => { }; // No-op
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const saved = localStorage.getItem('cib_theme');
+        return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
+
+    const toggleTheme = () => {
+        setIsDarkMode(prev => {
+            const newValue = !prev;
+            localStorage.setItem('cib_theme', newValue ? 'dark' : 'light');
+            return newValue;
+        });
+    };
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDarkMode]);
 
     return (
         <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
             <ConfigProvider
                 theme={{
-                    algorithm: theme.defaultAlgorithm,
+                    algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
                     token: {
-                        colorPrimary: '#000000', // Black primary for very strict professional look, or keep blue? User said "black text". Let's keep blue primary for actions but text is black.
-                        colorText: '#000000',
-                        colorBgContainer: '#ffffff',
-                        borderRadius: 6,
-                        fontSize: 14,
+                        colorPrimary: isDarkMode ? '#3b82f6' : '#000000',
+                        colorInfo: '#3b82f6',
+                        borderRadius: 16, // Modern, spacious rounding
+                        fontFamily: "'Inter', sans-serif",
+                        colorText: isDarkMode ? '#f1f5f9' : '#0f172a',
+                        colorBgContainer: isDarkMode ? '#111827' : '#ffffff',
+                        colorBorder: isDarkMode ? '#374151' : '#e2e8f0',
                     },
                     components: {
-                        Table: {
-                            headerBg: '#f8fafc',
-                            headerColor: '#000000', // Black header text
-                            headerSplitColor: '#e2e8f0',
-                            colorText: '#000000',
-                            borderColor: '#e2e8f0',
-                        },
                         Layout: {
-                            bodyBg: '#ffffff',
-                            headerBg: '#ffffff',
-                            siderBg: '#ffffff',
+                            bodyBg: isDarkMode ? '#030712' : '#f9fafb',
+                            headerBg: isDarkMode ? '#030712' : '#ffffff',
+                            siderBg: isDarkMode ? '#030712' : '#ffffff',
                         },
                         Card: {
-                            colorBgContainer: '#ffffff',
-                            colorBorderSecondary: '#e2e8f0',
+                            borderRadiusLG: 24,
+                            colorBgContainer: isDarkMode ? '#111827' : '#ffffff',
+                        },
+                        Button: {
+                            borderRadius: 12,
+                            fontWeight: 600,
                         },
                         Input: {
-                            colorBgContainer: '#ffffff',
-                            colorBorder: '#cbd5e1',
-                            colorText: '#000000',
-                            colorTextPlaceholder: '#94a3b8',
+                            borderRadius: 12,
+                            paddingBlock: 10,
                         },
-                        Select: {
-                            colorBgContainer: '#ffffff',
-                            colorBorder: '#cbd5e1',
-                            colorText: '#000000',
-                            optionSelectedColor: '#000000',
+                        Table: {
+                            borderRadius: 20,
+                            headerBg: isDarkMode ? '#1f2937' : '#f3f4f6',
+                            headerColor: isDarkMode ? '#f9fafb' : '#111827',
                         }
                     }
                 }}
             >
-                <div className="min-h-screen bg-white text-black font-sans">
+                <div className={`min-h-screen transition-all duration-500 font-sans ${isDarkMode ? 'bg-gray-950 text-slate-100' : 'bg-gray-50 text-slate-900'}`}>
                     {children}
                 </div>
             </ConfigProvider>

@@ -4,108 +4,151 @@
   --color-primary: #1677ff;
   --color-primary-hover: #4096ff;
   --color-primary-active: #0958d9;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-3xl: 24px;
 }
 
 :root {
   --ant-primary-color: #1677ff;
+  --bg-main: #f9fafb;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --accent-color: #000000;
+}
+
+.dark {
+  --bg-main: #030712;
+  --bg-card: #111827;
+  --text-primary: #f8fafb;
+  --text-secondary: #94a3b8;
+  --border-color: #1f2937;
+  --accent-color: #3b82f6;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f8fafc;
-  /* Slightly off-white background for depth */
-  color: #0f172a;
-  /* Slate 900 for main text */
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
 }
 
-/* Ant Design Global Overrides for Light Theme */
+/* Premium UI Utilities */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-3xl);
+  transition: all 0.3s ease;
+}
+
+.dark .glass-card {
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dribbble-shadow {
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08);
+}
+
+.dark .dribbble-shadow {
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Ant Design Global Overrides */
 .ant-layout {
   background: transparent !important;
 }
 
 .ant-layout-header {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  padding: 0 40px !important;
 }
 
 .ant-layout-sider {
-  background: #ffffff !important;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-card) !important;
+  border-right: 1px solid var(--border-color) !important;
+  transition: all 0.3s ease !important;
 }
 
 .ant-menu {
   background: transparent !important;
-  color: #475569 !important;
-  /* Slate 600 */
+  border: none !important;
+  padding: 12px !important;
+}
+
+.ant-menu-item {
+  border-radius: 12px !important;
+  height: 48px !important;
+  line-height: 48px !important;
+  margin-bottom: 8px !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
 }
 
 .ant-menu-item-selected {
-  background-color: #eff6ff !important;
-  /* Blue 50 */
-  color: #1677ff !important;
-  font-weight: 600;
+  background-color: var(--accent-color) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Input Fields & Form Controls - Modern, Clean, Spacious */
-.ant-input,
-.ant-input-number-input,
-.ant-picker-input>input,
-.ant-select-selection-item {
-  color: #0f172a !important;
-  /* Force black text */
-  font-weight: 500;
+.dark .ant-menu-item-selected {
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
 }
 
-.ant-input::placeholder {
-  color: #94a3b8 !important;
-  /* Slate 400 */
-}
-
-/* Form Item Label */
-.ant-form-item-label>label {
-  color: #334155 !important;
-  /* Slate 700 */
-  font-weight: 600 !important;
-  font-size: 0.875rem !important;
-}
-
-/* Table Styles - Crystal Clear */
 .ant-table {
-  background: #ffffff !important;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  background: transparent !important;
 }
 
 .ant-table-thead>tr>th {
-  background: #f8fafc !important;
-  color: #475569 !important;
-  /* Slate 600 */
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  font-size: 0.75rem !important;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e2e8f0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  padding: 24px 16px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
 }
 
 .ant-table-tbody>tr>td {
-  border-bottom: 1px solid #f1f5f9 !important;
-  color: #0f172a !important;
-  /* Slate 900 */
+  border-bottom: 1px solid var(--border-color) !important;
+  padding: 20px 16px !important;
+  background: transparent !important;
 }
 
-.ant-table-tbody>tr:hover>td {
-  background-color: #f8fafc !important;
+/* Input Styles */
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 16px !important;
+  border-color: var(--border-color) !important;
+  background: var(--bg-card) !important;
+  padding: 8px 16px !important;
 }
 
-/* React Resizable Styles */
-.react-resizable {
-  position: relative;
-  background-clip: padding-box;
+/* Animations */
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite;
+}
+
+/* React Resizable */
 .react-resizable-handle {
   position: absolute;
   width: 10px;
