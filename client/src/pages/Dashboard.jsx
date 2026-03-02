@@ -152,7 +152,7 @@ const Dashboard = () => {
             </div>
 
             {/* Visual Intelligence Section */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                 <div className="glass-card dribbble-shadow p-10 flex flex-col h-[550px]">
                     <div className="flex justify-between items-center mb-10">
                         <div>

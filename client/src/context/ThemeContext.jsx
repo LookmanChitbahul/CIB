@@ -3,8 +3,6 @@ import { ConfigProvider, theme } from 'antd';
 
 const ThemeContext = createContext();
 
-export const useTheme = () => useContext(ThemeContext);
-
 export const ThemeProvider = ({ children }) => {
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const saved = localStorage.getItem('cib_theme');
@@ -74,3 +72,6 @@ export const ThemeProvider = ({ children }) => {
         </ThemeContext.Provider>
     );
 };
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useTheme = () => useContext(ThemeContext);
