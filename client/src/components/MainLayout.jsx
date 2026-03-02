@@ -1,53 +1,48 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, theme } from 'antd';
+import { Layout, Menu, Button, theme, Avatar, Tooltip } from 'antd';
 import {
-    DesktopOutlined,
+    DashboardOutlined,
     ProjectOutlined,
     PlusCircleOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
+    SunOutlined,
+    MoonOutlined,
+    UserOutlined,
+    BellOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 import SimpleChatbot from './SimpleChatbot';
 
 const { Header, Sider, Content } = Layout;
 
 const MainLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
-
-    // We strictly assume light mode now
-    const {
-        token: { colorBgContainer },
-    } = theme.useToken();
+    const { isDarkMode, toggleTheme } = useTheme();
 
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleMenuClick = ({ key }) => {
-        navigate(key);
-    };
-
     const menuItems = [
         {
             key: '/',
-            icon: <DesktopOutlined />,
-            label: 'Dashboard',
+            icon: <DashboardOutlined className="text-xl" />,
+            label: 'Overview',
         },
         {
             key: '/projects',
-            icon: <ProjectOutlined />,
-            label: 'Projects',
+            icon: <ProjectOutlined className="text-xl" />,
+            label: 'Project Matrix',
         },
         {
             key: '/projects/new',
-            icon: <PlusCircleOutlined />,
-            label: 'Add Project',
+            icon: <PlusCircleOutlined className="text-xl" />,
+            label: 'Register New',
         },
     ];
 
-    const selectedKey = location.pathname === '/' ? '/' :
-        location.pathname.startsWith('/projects/new') ? '/projects/new' :
-            location.pathname.startsWith('/projects') ? '/projects' : '/';
+    const selectedKey = location.pathname;
 
     return (
         <Layout className="min-h-screen">
@@ -56,47 +51,71 @@ const MainLayout = () => {
                 collapsible
                 collapsed={collapsed}
                 width={260}
-                className="shadow-xl"
-                style={{ background: '#ffffff' }}
+                className="dribbble-shadow z-30"
+                style={{
+                    position: 'sticky',
+                    top: 0,
+                    height: '100vh',
+                    margin: '16px',
+                    borderRadius: '32px',
+                    background: isDarkMode ? '#111827' : '#ffffff'
+                }}
             >
-                <div className="flex items-center justify-center h-16 transition-all duration-300 bg-white border-b border-gray-200">
-                    <span className="font-bold text-xl tracking-wider text-black">
-                        {collapsed ? 'CIB' : 'CIB PROJECT'}
-                    </span>
+                <div className="flex items-center justify-center h-24 mb-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg ${isDarkMode ? 'bg-blue-600' : 'bg-black'}`}>
+                        {collapsed ? 'C' : 'CIB'}
+                    </div>
                 </div>
+
                 <Menu
-                    theme="light"
+                    theme={isDarkMode ? 'dark' : 'light'}
                     mode="inline"
                     selectedKeys={[selectedKey]}
                     items={menuItems}
-                    onClick={handleMenuClick}
-                    className="border-none mt-4"
-                    style={{ background: 'transparent' }}
+                    onClick={({ key }) => navigate(key)}
+                    className="border-none px-4"
                 />
             </Sider>
-            <Layout className="transition-all duration-300">
-                <Header
-                    className="flex items-center justify-between px-6 shadow-sm z-10 transition-colors duration-300"
-                    style={{ background: '#ffffff' }}
-                >
-                    <Button
-                        type="text"
-                        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                        onClick={() => setCollapsed(!collapsed)}
-                        className="text-lg w-10 h-10 flex items-center justify-center hover:bg-gray-100 text-black"
-                    />
-                    {/* Theme switcher removed as requested */}
+
+            <Layout>
+                <Header className={`flex items-center justify-between h-20 px-10 border-b border-slate-200 dark:border-slate-800 ${isDarkMode ? 'bg-gray-950' : 'bg-white'}`}>
+                    <div className="flex items-center gap-6">
+                        <Button
+                            type="text"
+                            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                            onClick={() => setCollapsed(!collapsed)}
+                            className={`text-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
+                        />
+                        <div className={`h-6 w-px ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`} />
+                        <h2 className={`font-bold text-lg hidden sm:block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                            {menuItems.find(item => item.key === selectedKey)?.label || 'Record System'}
+                        </h2>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <Tooltip title="Toggle Theme">
+                            <Button
+                                type="text"
+                                icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
+                                onClick={toggleTheme}
+                                className={`text-xl flex items-center justify-center rounded-2xl w-12 h-12 hover:bg-gray-100 dark:hover:bg-gray-800 ${isDarkMode ? 'text-amber-400' : 'text-slate-600'}`}
+                            />
+                        </Tooltip>
+                        <Button
+                            type="text"
+                            icon={<BellOutlined />}
+                            className={`text-xl flex items-center justify-center rounded-2xl w-12 h-12 hover:bg-gray-100 dark:hover:bg-gray-800 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
+                        />
+                    </div>
                 </Header>
-                <Content className="p-6 overflow-auto" style={{ background: '#f8fafc' }}>
-                    <div
-                        className="p-8 min-h-[280px] rounded-xl shadow-sm transition-all duration-300 border border-gray-200"
-                        style={{ background: '#ffffff' }}
-                    >
+
+                <Content className="p-10 overflow-auto">
+                    <div className="max-w-[1400px] mx-auto min-h-[calc(100vh-160px)]">
                         <Outlet />
                     </div>
                 </Content>
-                <SimpleChatbot />
             </Layout>
+            <SimpleChatbot />
         </Layout>
     );
 };

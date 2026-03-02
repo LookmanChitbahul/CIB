@@ -1,24 +1,24 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Row, Col, Statistic, Table, Spin, Empty, Button, Tooltip as AntTooltip } from 'antd';
+import { Table, Spin, Empty, Button, Avatar } from 'antd';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getDashboardStats } from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 import {
     ProjectOutlined,
     FileDoneOutlined,
+    SyncOutlined,
     FieldTimeOutlined,
     ArrowRightOutlined,
-    ClockCircleOutlined,
-    CheckCircleOutlined,
-    SyncOutlined,
-    PauseCircleOutlined
+    PlusOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-const COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d'];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { isDarkMode } = useTheme();
     const { data: stats, isLoading, isError } = useQuery({
         queryKey: ['dashboard'],
         queryFn: async () => {
@@ -30,37 +30,48 @@ const Dashboard = () => {
     if (isLoading) return <div className="flex justify-center items-center h-[70vh]"><Spin size="large" tip="Loading statistics..." /></div>;
     if (isError) return <div className="text-center text-red-500 py-20 font-medium">Failed to load dashboard statistics.</div>;
 
-    // Check if stats has the expected structure to avoid crashes
     const isValidStats = stats && typeof stats === 'object' && !Array.isArray(stats);
     if (!isValidStats) return <Empty className="py-20" description="No project data available or API error." />;
 
-    const pieData = (stats?.projectsByType || []).map(item => ({ name: item?.type || 'Unknown', value: item?.count || 0 }));
-    const barData = (stats?.projectsOverTime || []).map(item => ({ name: item?.date || '', count: item?.count || 0 }));
+    const pieData = stats.projectsByType?.map((item, index) => ({
+        name: item.type,
+        value: item.count,
+        color: COLORS[index % COLORS.length]
+    })) || [];
+
+    const barData = stats.projectsOverTime?.map(item => ({
+        name: item.date,
+        count: item.count
+    })) || [];
 
     const getTypeIcon = (type) => {
         switch (type) {
-            case 'NEW': return <SyncOutlined className="text-blue-500" />;
-            case 'ONGOING': return <ClockCircleOutlined className="text-green-500" />;
-            case 'ON_HOLD': return <PauseCircleOutlined className="text-amber-500" />;
-            case 'COMPLETED': return <CheckCircleOutlined className="text-purple-500" />;
-            default: return null;
+            case 'NEW': return <PlusOutlined className="text-blue-500" />;
+            case 'ONGOING': return <SyncOutlined className="text-amber-500" />;
+            case 'COMPLETED': return <FileDoneOutlined className="text-green-500" />;
+            default: return <ProjectOutlined />;
         }
     };
 
-    const recentColumns = [
+    const columns = [
         {
             title: 'Project Name',
             dataIndex: 'projectName',
             key: 'projectName',
-            className: 'font-semibold text-slate-900',
+            render: (text, record) => (
+                <div className="flex items-center gap-3">
+                    <Avatar size="small" icon={getTypeIcon(record.type)} className="bg-gray-100 dark:bg-gray-800 border-none" />
+                    <span className={`font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>{text}</span>
+                </div>
+            )
         },
         {
             title: 'Type',
             dataIndex: 'type',
             key: 'type',
             render: (val) => (
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-slate-200 bg-slate-50">
-                    {getTypeIcon(val)} {val}
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase border ${isDarkMode ? 'border-slate-800 bg-slate-900/50 text-slate-400' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
+                    {val}
                 </span>
             )
         },
@@ -68,100 +79,85 @@ const Dashboard = () => {
             title: 'Value',
             dataIndex: 'contractValue',
             key: 'contractValue',
-            className: 'text-slate-500',
+            render: (val) => <span className={`font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{val}</span>
         },
         {
-            title: 'Last Updated',
+            title: 'Timeline',
             dataIndex: 'updatedAt',
             key: 'updatedAt',
-            render: (text) => <span className="text-slate-400 text-xs">{text ? new Date(text).toLocaleDateString() : 'N/A'}</span>
+            render: (text) => <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{text ? new Date(text).toLocaleDateString() : 'N/A'}</span>
         },
     ];
 
+    const statsItems = [
+        { label: 'Active Projects', value: stats?.totalProjects || 0, icon: <ProjectOutlined />, color: 'blue', tag: 'Global' },
+        { label: 'Completed', value: stats?.projectsByType?.find(p => p.type === 'COMPLETED')?.count || 0, icon: <FileDoneOutlined />, color: 'green', tag: 'Archived' },
+        { label: 'Ongoing', value: stats?.projectsByType?.find(p => p.type === 'ONGOING')?.count || 0, icon: <SyncOutlined />, color: 'amber', tag: 'Current' },
+        { label: 'Drafts', value: stats?.totalDrafts || 0, icon: <FieldTimeOutlined />, color: 'purple', tag: 'Local' }
+    ];
+
     return (
-        <div className="space-y-8 p-2 animate-in fade-in duration-700">
-            {/* Header section - Clean & Minimal */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Project Dashboard</h1>
-                    <p className="text-slate-500 font-medium">System Overview: {stats?.totalProjects || 0} active projects.</p>
+        <div className="space-y-12 animate-in fade-in duration-1000">
+            {/* Hero Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-blue-600 to-indigo-700 p-12 rounded-[40px] shadow-2xl shadow-blue-500/20 text-white relative overflow-hidden">
+                <div className="relative z-10 space-y-4">
+                    <h1 className="text-5xl font-black tracking-tight leading-none">Record System <br /> Intelligence</h1>
+                    <p className="opacity-80 text-lg font-medium max-w-md">Real-time oversight of project units across the CIB operational matrix.</p>
                 </div>
-                {/* Drafts Notification - Refined */}
-                {(stats?.totalDrafts || 0) > 0 && (
-                    <div className="bg-white border border-amber-200 shadow-sm px-4 py-2 rounded-full flex items-center gap-3 animate-pulse-slow">
-                        <SyncOutlined spin className="text-amber-500" />
-                        <span className="text-amber-700 font-semibold text-sm">
-                            {stats.totalDrafts} {stats.totalDrafts === 1 ? 'Draft' : 'Drafts'} Pending Review
-                        </span>
-                    </div>
-                )}
+                <div className="relative z-10 flex flex-wrap gap-4">
+                    <Button
+                        size="large"
+                        shape="round"
+                        icon={<PlusOutlined />}
+                        onClick={() => navigate('/projects/new')}
+                        className="h-14 px-8 font-black border-none shadow-xl hover:scale-105 transition-transform"
+                    >
+                        New Entry
+                    </Button>
+                    <Button
+                        size="large"
+                        shape="round"
+                        ghost
+                        icon={<ArrowRightOutlined />}
+                        onClick={() => navigate('/projects')}
+                        className="h-14 px-8 font-black border-white/30 hover:bg-white/10"
+                    >
+                        View Matrix
+                    </Button>
+                </div>
+                <div className="absolute top-[-50%] right-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-[-20%] left-[20%] w-[300px] h-[300px] bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
             </div>
 
-            {/* Stats Cards - Modern, Bordered, Clean White */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors flex items-center justify-center text-blue-600">
-                            <ProjectOutlined className="text-lg" />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {statsItems.map((item, idx) => (
+                    <div key={idx} className={`glass-card dribbble-shadow p-8 group hover:-translate-y-2 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all shadow-inner
+                                ${item.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' :
+                                    item.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 text-green-600' :
+                                        item.color === 'amber' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600' :
+                                            'bg-purple-50 dark:bg-purple-900/20 text-purple-600'}`}>
+                                {item.icon}
+                            </div>
+                            <span className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">{item.tag}</span>
                         </div>
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Active Projects</span>
-                    </div>
-                    <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats?.totalProjects || 0}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium">PRODUCTION</div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors flex items-center justify-center text-green-600">
-                            <FileDoneOutlined className="text-lg" />
+                        <div className={`text-4xl font-black leading-none mb-2 ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                            {item.value}
                         </div>
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Completed</span>
+                        <div className="text-sm text-slate-500 font-bold">{item.label}</div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats?.projectsByType?.find(p => p.type === 'COMPLETED')?.count || 0}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium">ARCHIVED</div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors flex items-center justify-center text-amber-600">
-                            <SyncOutlined className="text-lg" />
-                        </div>
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Ongoing</span>
-                    </div>
-                    <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats?.projectsByType?.find(p => p.type === 'ONGOING')?.count || 0}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium">IN PROGRESS</div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors flex items-center justify-center text-purple-600">
-                            <FieldTimeOutlined className="text-lg" />
-                        </div>
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Drafts</span>
-                    </div>
-                    <div className="text-3xl font-black text-slate-900 leading-none mb-1">
-                        {stats?.totalDrafts || 0}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium">LOCAL SAVES</div>
-                </div>
+                ))}
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Pie Chart Card */}
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[450px]">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-slate-900">Project Type Distribution</h3>
-                        <div className="flex gap-2">
-                            {COLORS.map((color, idx) => (
-                                <div key={idx} className="w-2.5 h-2.5 rounded-full" style={{ background: color }}></div>
-                            ))}
+            {/* Visual Intelligence Section */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                <div className="glass-card dribbble-shadow p-10 flex flex-col h-[550px]">
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h3 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>Sector Weights</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Project Distribution</p>
                         </div>
                     </div>
                     <div className="flex-1 min-h-0">
@@ -171,83 +167,76 @@ const Dashboard = () => {
                                     data={pieData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={80}
-                                    outerRadius={120}
-                                    paddingAngle={8}
+                                    innerRadius={90}
+                                    outerRadius={140}
+                                    paddingAngle={10}
                                     dataKey="value"
                                     stroke="none"
                                 >
                                     {pieData.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={COLORS[index % COLORS.length]}
-                                            className="focus:outline-none transition-opacity hover:opacity-80"
-                                        />
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{
-                                        borderRadius: '12px',
-                                        border: '1px solid #e2e8f0',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        background: '#ffffff',
-                                        padding: '12px 16px',
-                                        color: '#0f172a'
+                                        borderRadius: '24px',
+                                        border: 'none',
+                                        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1)',
+                                        background: isDarkMode ? '#1f2937' : '#ffffff',
+                                        padding: '16px 24px',
+                                        color: isDarkMode ? '#f8fafb' : '#0f172a'
                                     }}
-                                    itemStyle={{ color: '#0f172a', fontSize: '14px', fontWeight: '600' }}
+                                    itemStyle={{ fontSize: '14px', fontWeight: '800', textTransform: 'uppercase' }}
                                 />
                                 <Legend
                                     verticalAlign="bottom"
-                                    height={36}
+                                    iconSize={12}
                                     iconType="circle"
-                                    formatter={(value) => <span className="text-slate-500 font-semibold text-xs ml-2">{value}</span>}
+                                    formatter={(value) => <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest ml-3">{value}</span>}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Timeline Chart Card */}
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[450px]">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-slate-900">Registration Timeline</h3>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Historical Data</div>
+                <div className="glass-card dribbble-shadow p-10 flex flex-col h-[550px]">
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h3 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>Flow Analysis</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Registration Timeline</p>
+                        </div>
                     </div>
                     <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={barData}
-                                margin={{ top: 20, right: 30, left: -20, bottom: 0 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke='#f1f5f9' />
+                            <BarChart data={barData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="0 0" vertical={false} stroke={isDarkMode ? '#1f2937' : '#f1f5f9'} />
                                 <XAxis
                                     dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
+                                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}
+                                    dy={15}
                                 />
                                 <YAxis
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
+                                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 800 }}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
                                     contentStyle={{
-                                        borderRadius: '12px',
-                                        border: '1px solid #e2e8f0',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        background: '#ffffff',
-                                        padding: '12px 16px'
+                                        borderRadius: '24px',
+                                        border: 'none',
+                                        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1)',
+                                        background: isDarkMode ? '#1f2937' : '#ffffff',
+                                        padding: '16px 24px'
                                     }}
                                 />
                                 <Bar
                                     dataKey="count"
-                                    fill="#1677ff"
-                                    radius={[4, 4, 0, 0]}
-                                    barSize={40}
-                                    name="Started Projects"
-                                    className="transition-all hover:brightness-110"
+                                    fill={isDarkMode ? '#3b82f6' : '#000000'}
+                                    radius={[8, 8, 8, 8]}
+                                    barSize={32}
                                 />
                             </BarChart>
                         </ResponsiveContainer>
@@ -255,29 +244,32 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Recent Activity Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-8 flex justify-between items-center border-b border-slate-50">
+            {/* Matrix Pulse Section */}
+            <div className={`glass-card dribbble-shadow overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+                <div className="p-10 flex justify-between items-center border-b border-gray-100 dark:border-gray-800">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Recent Project Updates</h3>
-                        <p className="text-slate-400 text-xs mt-1">Latest changes in the project ecosystem.</p>
+                        <h3 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>Operational Log</h3>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Recent Data Mutations</p>
                     </div>
                     <Button
-                        type="primary"
-                        icon={<ArrowRightOutlined />}
+                        type="text"
+                        size="large"
+                        className="font-black text-[10px] uppercase tracking-[0.2em] text-blue-600"
                         onClick={() => navigate('/projects')}
-                        className="bg-primary hover:bg-primary-hover border-none rounded-xl h-10 px-6 font-bold flex items-center shadow-lg shadow-blue-500/20"
                     >
-                        View All Projects
+                        Access Matrix <ArrowRightOutlined className="ml-2" />
                     </Button>
                 </div>
-                <div className="recent-table-container">
+                <div className="p-6">
                     <Table
-                        dataSource={stats.recentProjects}
-                        columns={recentColumns}
+                        columns={columns}
+                        dataSource={stats.recentProjects?.slice(0, 5) || []}
                         pagination={false}
                         rowKey="id"
-                        size="large"
+                        onRow={(record) => ({
+                            onClick: () => navigate(`/projects/${record.id}/edit`),
+                            style: { cursor: 'pointer' },
+                        })}
                         className="custom-dashboard-table"
                     />
                 </div>
