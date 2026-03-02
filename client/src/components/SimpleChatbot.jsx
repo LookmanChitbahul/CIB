@@ -32,18 +32,18 @@ const SimpleChatbot = () => {
         e.preventDefault();
     };
 
-    const stopResizing = () => {
+    const stopResizing = React.useCallback(() => {
         setIsResizing(false);
-    };
+    }, []);
 
-    const resize = (e) => {
+    const resize = React.useCallback((e) => {
         if (isResizing) {
             const newWidth = window.innerWidth - e.clientX;
             if (newWidth > 350 && newWidth < 900) {
                 setChatWidth(newWidth);
             }
         }
-    };
+    }, [isResizing]);
 
     useEffect(() => {
         if (isResizing) {
@@ -57,7 +57,7 @@ const SimpleChatbot = () => {
             window.removeEventListener('mousemove', resize);
             window.removeEventListener('mouseup', stopResizing);
         };
-    }, [isResizing]);
+    }, [isResizing, resize, stopResizing]);
 
     const handleSend = async () => {
         if (!inputValue.trim() || loading) return;

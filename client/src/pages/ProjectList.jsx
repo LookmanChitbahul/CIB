@@ -44,7 +44,6 @@ const ProjectList = () => {
     const scale = 1 - (fov - 70) / 100; // Inverse scale for density
     const fontSize = Math.max(9, 14 * scale);
     const subFontSize = Math.max(8, 10 * scale);
-    const padding = Math.max(4, 16 * scale);
     const colWidth = (base) => base * scale;
 
     const deleteMutation = useMutation({
@@ -355,7 +354,7 @@ const ProjectList = () => {
                         className: `px-8 py-4 font-bold ${isDarkMode ? 'pagination-dark' : ''}`,
                         position: ['bottomCenter'],
                     }}
-                    onRow={(record) => ({
+                    onRow={() => ({
                         className: 'hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer',
                     })}
                 />
