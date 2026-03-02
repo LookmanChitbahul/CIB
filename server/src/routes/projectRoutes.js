@@ -17,6 +17,7 @@ router.get('/export/pdf', projectController.exportToPDF);
 router.get('/', projectController.getAllProjects);
 router.post('/', projectController.createProject);
 router.get('/:id', projectController.getProjectById);
+router.get('/:id/history', projectController.getProjectHistory);
 router.put('/:id', projectController.updateProject);
 router.delete('/:id', projectController.deleteProject);
 

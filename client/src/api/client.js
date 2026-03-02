@@ -15,6 +15,7 @@ export const getProjectById = (id) => apiClient.get(`/projects/${id}`);
 export const createProject = (data) => apiClient.post('/projects', data);
 export const updateProject = (id, data) => apiClient.put(`/projects/${id}`, data);
 export const deleteProject = (id) => apiClient.delete(`/projects/${id}`);
+export const getProjectHistory = (id) => apiClient.get(`/projects/${id}/history`);
 export const getDashboardStats = () => apiClient.get('/projects/dashboard');
 
 export default apiClient;

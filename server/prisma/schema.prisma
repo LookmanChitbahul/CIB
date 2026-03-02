@@ -12,6 +12,7 @@ enum ProjectType {
   ONGOING
   ON_HOLD
   COMPLETED
+  OVERDUE
 }
 
 enum FundType {
@@ -37,4 +38,13 @@ model Project {
   isDraft             Boolean     @default(false)
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
+  history             ProjectHistory[]
+}
+
+model ProjectHistory {
+  id             Int      @id @default(autoincrement())
+  projectId      Int
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshot       Json     // Stores all field values at the time of modification
+  modifiedAt     DateTime @default(now())
 }

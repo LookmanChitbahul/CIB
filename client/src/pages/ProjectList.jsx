@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table, Button, Input, Space, Tag, Modal, message, Tooltip, Typography, Card, Descriptions, Slider } from 'antd';
+import { Table, Button, Input, Space, Tag, Tooltip, Typography, Card, Descriptions, Slider, Timeline, Spin, App } from 'antd';
 import {
     EditOutlined,
     DeleteOutlined,
@@ -13,22 +13,25 @@ import {
     UserOutlined,
     HourglassOutlined,
     DownOutlined,
-    InfoCircleOutlined,
-    ExpandOutlined
+    HistoryOutlined,
+    FileExcelOutlined,
+    FilePdfOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { getProjects, deleteProject } from '../api/client';
+import { getProjects, deleteProject, getProjectHistory } from '../api/client';
 import { useTheme } from '../context/ThemeContext';
-
-const { confirm } = Modal;
-const { Text } = Typography;
 
 const ProjectList = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { isDarkMode } = useTheme();
+    const { message: messageApi, modal: modalApi } = App.useApp();
     const [searchText, setSearchText] = useState('');
-    const [fov, setFov] = useState(85); // FOV slider: 60 (zoomed in) to 110 (wide view)
+    const [fov, setFov] = useState(85);
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [historyVisible, setHistoryVisible] = useState(false);
+    const [currentHistory, setCurrentHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     const { data: projectsData, isLoading, isError } = useQuery({
         queryKey: ['projects'],
@@ -40,8 +43,7 @@ const ProjectList = () => {
 
     const projects = projectsData?.data || [];
 
-    // Dynamic scale factors based on FOV
-    const scale = 1 - (fov - 70) / 100; // Inverse scale for density
+    const scale = 1 - (fov - 70) / 100;
     const fontSize = Math.max(9, 14 * scale);
     const subFontSize = Math.max(8, 10 * scale);
     const colWidth = (base) => base * scale;
@@ -49,16 +51,16 @@ const ProjectList = () => {
     const deleteMutation = useMutation({
         mutationFn: deleteProject,
         onSuccess: () => {
-            message.success('Project purged from matrix');
+            messageApi.success('Project purged from matrix');
             queryClient.invalidateQueries(['projects']);
         },
         onError: () => {
-            message.error('Purge operation failed');
+            messageApi.error('Purge operation failed');
         }
     });
 
     const showDeleteConfirm = (id) => {
-        confirm({
+        modalApi.confirm({
             title: 'Purge this record?',
             icon: <ExclamationCircleOutlined className="text-red-500" />,
             content: 'This will permanently remove the project from the CIB matrix.',
@@ -72,12 +74,34 @@ const ProjectList = () => {
         });
     };
 
+    const { Text } = Typography;
+
+    const fetchHistory = async (id) => {
+        setHistoryLoading(true);
+        setHistoryVisible(true);
+        try {
+            const res = await getProjectHistory(id);
+            setCurrentHistory(res.data);
+        } catch (error) {
+            messageApi.error('Failed to retrieve history logs');
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const handleBulkExport = (type) => {
+        const baseUrl = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+        const ids = selectedRowKeys.join(',');
+        window.open(`${baseUrl}/projects/export/${type}?ids=${ids}`, '_blank');
+    };
+
     const getTypeColor = (type) => {
         switch (type) {
             case 'NEW': return 'blue';
             case 'ONGOING': return 'orange';
             case 'ON_HOLD': return 'red';
             case 'COMPLETED': return 'green';
+            case 'OVERDUE': return 'volcano';
             default: return 'default';
         }
     };
@@ -154,38 +178,27 @@ const ProjectList = () => {
             )
         },
         {
-            title: 'Start Date',
-            dataIndex: 'startDate',
-            key: 'startDate',
-            width: colWidth(120),
-            render: (date) => (
-                <div className={`flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                    <CalendarOutlined style={{ fontSize: `${subFontSize}px` }} />
-                    <span className="font-bold uppercase tracking-widest" style={{ fontSize: `${subFontSize}px` }}>
-                        {date ? new Date(date).toLocaleDateString() : 'N/A'}
-                    </span>
+            title: 'Timeline',
+            key: 'timeline',
+            width: colWidth(240),
+            render: (_, record) => (
+                <div className="flex flex-col gap-1">
+                    <div className={`flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <CalendarOutlined style={{ fontSize: `${subFontSize}px` }} />
+                        <span className="font-bold uppercase tracking-widest" style={{ fontSize: `${subFontSize - 1}px` }}>
+                            {record.startDate ? new Date(record.startDate).toLocaleDateString() : 'N/A'}
+                            <span className="mx-1 opacity-40">→</span>
+                            {record.completionDate ? new Date(record.completionDate).toLocaleDateString() : 'OPEN'}
+                        </span>
+                    </div>
                 </div>
-            ),
+            )
         },
         {
-            title: 'Completion Date',
-            dataIndex: 'completionDate',
-            key: 'completionDate',
-            width: colWidth(120),
-            render: (date) => (
-                <div className={`flex items-center gap-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <HourglassOutlined style={{ fontSize: `${subFontSize}px` }} />
-                    <span className="font-medium uppercase tracking-widest" style={{ fontSize: `${subFontSize}px` }}>
-                        {date ? new Date(date).toLocaleDateString() : 'N/A'}
-                    </span>
-                </div>
-            ),
-        },
-        {
-            title: 'Contract Value/Project Value',
+            title: 'Contract Value',
             dataIndex: 'contractValue',
             key: 'contractValue',
-            width: colWidth(200),
+            width: colWidth(150),
             render: (val) => {
                 const displayVal = String(val || '0.00').replace(/^\$/, '');
                 return (
@@ -199,26 +212,21 @@ const ProjectList = () => {
             }
         },
         {
-            title: 'Fund',
-            dataIndex: 'fundAvailable',
-            key: 'fundAvailable',
-            width: colWidth(90),
-            render: (val) => (
-                <div
-                    className={`font-black uppercase tracking-[0.1em] ${val === 'YES' || val === 'FUNDED' ? 'text-green-500' : 'text-red-400'}`}
-                    style={{ fontSize: `${subFontSize - 1}px` }}
-                >
-                    {val || 'NO'}
-                </div>
-            )
-        },
-        {
             title: 'Actions',
             key: 'action',
             align: 'right',
-            width: 100,
+            width: 140,
             render: (_, record) => (
                 <Space size="small">
+                    <Tooltip title="History Logs">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<HistoryOutlined style={{ fontSize: `${fontSize}px` }} />}
+                            onClick={() => fetchHistory(record.id)}
+                            className={`flex items-center justify-center p-2 rounded-lg ${isDarkMode ? 'text-amber-400 hover:bg-amber-900/20' : 'text-amber-500 hover:bg-amber-50'}`}
+                        />
+                    </Tooltip>
                     <Tooltip title="Edit">
                         <Button
                             type="text"
@@ -281,6 +289,15 @@ const ProjectList = () => {
         p.pid?.toString().includes(searchText)
     );
 
+    const onSelectChange = (newSelectedRowKeys) => {
+        setSelectedRowKeys(newSelectedRowKeys);
+    };
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: onSelectChange,
+    };
+
     if (isError) return (
         <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
             <h2 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Operational Matrix Offline</h2>
@@ -333,8 +350,43 @@ const ProjectList = () => {
                 </div>
             </div>
 
+            {selectedRowKeys.length > 0 && (
+                <div className="flex items-center justify-between p-4 bg-blue-600 rounded-3xl shadow-xl animate-in zoom-in duration-300">
+                    <div className="flex items-center gap-4 text-white ml-2">
+                        <span className="text-xs font-black uppercase tracking-widest">{selectedRowKeys.length} Nodes Selected</span>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button
+                            ghost
+                            icon={<FileExcelOutlined />}
+                            onClick={() => handleBulkExport('excel')}
+                            className="border-white/20 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl"
+                        >
+                            Excel Export
+                        </Button>
+                        <Button
+                            ghost
+                            icon={<FilePdfOutlined />}
+                            onClick={() => handleBulkExport('pdf')}
+                            className="border-white/20 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl"
+                        >
+                            PDF Export
+                        </Button>
+                        <Button
+                            danger
+                            type="primary"
+                            onClick={() => setSelectedRowKeys([])}
+                            className="bg-red-500 border-none font-black text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl"
+                        >
+                            Reset
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className={`glass-card dribbble-shadow overflow-hidden ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white'}`}>
                 <Table
+                    rowSelection={rowSelection}
                     columns={columns}
                     dataSource={filteredProjects}
                     loading={isLoading}
@@ -354,11 +406,56 @@ const ProjectList = () => {
                         className: `px-8 py-4 font-bold ${isDarkMode ? 'pagination-dark' : ''}`,
                         position: ['bottomCenter'],
                     }}
-                    onRow={() => ({
-                        className: 'hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer',
-                    })}
                 />
             </div>
+
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <HistoryOutlined className="text-amber-500" />
+                        <span className="font-black uppercase tracking-tight">Timeline Logs</span>
+                    </div>
+                }
+                open={historyVisible}
+                onCancel={() => setHistoryVisible(false)}
+                footer={null}
+                width={600}
+                centered
+                styles={{ body: { padding: '24px' } }}
+                className="history-modal"
+            >
+                {historyLoading ? (
+                    <div className="py-20 text-center"><Spin indicator={<HistoryOutlined spin className="text-3xl text-blue-500" />} /></div>
+                ) : (
+                    <Timeline
+                        mode="left"
+                        className="mt-8"
+                        items={currentHistory.map((item, idx) => ({
+                            color: idx === 0 ? 'blue' : 'gray',
+                            children: (
+                                <div className="pb-8">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <Text strong className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>
+                                            {idx === 0 ? 'Current Version (Latest Change)' : (idx === currentHistory.length - 1 ? 'Initial Registry' : `Version Snapshot #${currentHistory.length - idx}`)}
+                                        </Text>
+                                        <Text type="secondary" className="text-[10px] font-bold uppercase tracking-widest">
+                                            {new Date(item.modifiedAt).toLocaleString()}
+                                        </Text>
+                                    </div>
+                                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className="grid grid-cols-2 gap-y-2 text-[11px]">
+                                            <div><span className="text-slate-400 uppercase font-black tracking-tighter mr-2">Status:</span> <Tag size="small" color={getTypeColor(item.snapshot.type)}>{item.snapshot.type}</Tag></div>
+                                            <div><span className="text-slate-400 uppercase font-black tracking-tighter mr-2">User:</span> <span className="font-bold">{item.snapshot.leadProgrammeManager}</span></div>
+                                            <div className="col-span-2 mt-2"><span className="text-slate-400 uppercase font-black tracking-tighter block mb-1">Feedback:</span> <span className="italic">{item.snapshot.status}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        }))}
+                    />
+                )}
+            </Modal>
+
             <p className="text-center text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] opacity-50">
                 Adjust FOV slider to toggle between Global Visibility and Detailed Inspection
             </p>

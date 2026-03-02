@@ -32,6 +32,15 @@ const buildWhereClause = (query) => {
         where.isDraft = isDraft === 'true' || isDraft === true;
     }
 
+    if (query.ids) {
+        const idList = Array.isArray(query.ids)
+            ? query.ids
+            : query.ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+        if (idList.length > 0) {
+            where.id = { in: idList };
+        }
+    }
+
     return where;
 };
 
@@ -56,8 +65,11 @@ exports.getAllProjects = async (req, res) => {
             prisma.project.count({ where }),
         ]);
 
+        // Dynamically apply OVERDUE status for projects in the results
+        const enrichedProjects = projects.map(p => handleAutomaticStatus({ ...p }));
+
         res.json({
-            data: projects,
+            data: enrichedProjects,
             meta: {
                 total,
                 page: parseInt(page),
@@ -88,9 +100,46 @@ exports.getProjectById = async (req, res) => {
     }
 };
 
+exports.getProjectHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const history = await prisma.projectHistory.findMany({
+            where: { projectId: parseInt(id) },
+            orderBy: { modifiedAt: 'desc' },
+        });
+        res.json(history);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch project history', details: error.message });
+    }
+};
+
+const validateProjectDates = (data) => {
+    if (data.startDate && data.completionDate) {
+        const start = new Date(data.startDate);
+        const completion = new Date(data.completionDate);
+        if (completion < start) {
+            throw new Error('Completion date cannot be before the start date.');
+        }
+    }
+};
+
+const handleAutomaticStatus = (data) => {
+    if (data.completionDate && data.type !== 'COMPLETED') {
+        const completion = new Date(data.completionDate);
+        if (completion < new Date()) {
+            data.type = 'OVERDUE';
+        }
+    }
+    return data;
+};
+
 exports.createProject = async (req, res) => {
     try {
-        const data = req.body;
+        let data = req.body;
+
+        validateProjectDates(data);
+        data = handleAutomaticStatus(data);
+
         // Ensure date fields are proper Date objects
         if (data.startDate) data.startDate = new Date(data.startDate);
         if (data.completionDate) data.completionDate = new Date(data.completionDate);
@@ -102,35 +151,62 @@ exports.createProject = async (req, res) => {
             data,
         });
 
+        // Initialize history with the first version
+        await prisma.projectHistory.create({
+            data: {
+                projectId: project.id,
+                snapshot: project,
+            }
+        });
+
         res.status(201).json(project);
     } catch (error) {
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'A project with this PID already exists.' });
         }
-        res.status(500).json({ error: 'Failed to create project', details: error.message });
+        res.status(400).json({ error: 'Project initialization failed', details: error.message });
     }
 };
 
 exports.updateProject = async (req, res) => {
     try {
         const { id } = req.params;
-        const data = req.body;
+        let data = req.body;
+
+        validateProjectDates(data);
+        data = handleAutomaticStatus(data);
 
         if (data.startDate) data.startDate = new Date(data.startDate);
         if (data.completionDate) data.completionDate = new Date(data.completionDate);
         if (data.pid) data.pid = parseInt(data.pid);
 
-        // Remove id from update data if present
+        // Remove read-only/unsupported fields from update payload
         delete data.id;
+        delete data.history;
+        delete data.createdAt;
+        delete data.updatedAt;
 
-        const project = await prisma.project.update({
-            where: { id: parseInt(id) },
-            data,
+        // Use transaction for atomic update and history logging
+        const result = await prisma.$transaction(async (tx) => {
+            const updatedProject = await tx.project.update({
+                where: { id: parseInt(id) },
+                data,
+            });
+
+            await tx.projectHistory.create({
+                data: {
+                    projectId: updatedProject.id,
+                    snapshot: updatedProject,
+                }
+            });
+
+            return updatedProject;
         });
 
-        res.json(project);
+        res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update project', details: error.message });
+        console.error('Update operation failed:', error);
+        res.status(400).json({ error: 'Update failed', details: error.message });
     }
 };
 
