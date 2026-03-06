@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Select, Button, Row, Col, Divider, DatePicker, App } from 'antd';
+import { Form, Input, Select, Button, Row, Col, Divider, DatePicker, App, AutoComplete } from 'antd';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -19,6 +19,53 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 const PERSISTENCE_KEY = 'cib_project_form_draft';
+
+const ministries = [
+    "Prime Ministers Office, Defence, Home Affairs, External Communications", "Ministry of Finance",
+    "Ministry of Energy & Public Utilities", "Ministry of Rodrigues, Outer Islands", "Ministry of Housing & Lands",
+    "Ministry of Foreign Affairs, Regional Integration & Int Trade", "Ministry of Information Technology, Communication and Innovation",
+    "Ministry of National Infrastructure", "Ministry of Education and Human Resource", "Ministry of Tourism",
+    "Ministry of Health & Wellness", "Ministry of Arts & Culture", "Ministry of Social Integration, Social Security, National Solidarity",
+    "Ministry of Agro-Industry and Food Security, Blue Economy and Fisheries", "Ministry of Industry, SME and Cooperatives",
+    "Ministry of Youth and Sports", "Ministry of Commerce and Consumer Protection", "Ministry of Gender Equality and Family Welfare",
+    "Ministry of Tertiary Education, Science and Research", "Ministry of Labour and Industrial Relations", "Ministry of Local Government",
+    "Ministry of Public Service, Administrative Reforms", "Ministry of Financial Services and Economic Planning",
+    "Ministry of Land Transport", "Ministry of Environment, solid Waste Management and Climate Change"
+];
+
+const departments = [
+    "Central Informatics Bureau", "Central Information Systems Division", "Central Procurement Board", "Civil Status Division",
+    "Civil Aviation Department", "Data Protection Office", "Employment Relations Tribunal", "Energy Efficiency Management Office",
+    "Forensic Science Laboratory", "Government Printing Department", "Mauritius Meteorological Services", "Mauritius Police Force",
+    "Mauritius Prisons Service", "National Archives Department", "National Land Transport Authority", "Office of Public Sector Governance",
+    "Pa& Immigration Office", "Pay Research Bureau", "Procurement Policy Office", "Registrar General Dept", "Statistics Mauritius",
+    "Energy Services Division", "Valuation Department", "The Treasury", "National Assembly", "Board of Investment", "The Judiciary",
+    "Government Online Centre", "Registrar of Companies", "Mauritius Research Council", "Supreme Court", "Public Service Commission",
+    "Local Government Services Commission", "Radiation Protection Agency", "Office of President", "Office of Vice President",
+    "Office of DPP", "Traffic Branch", "NHDC", "MITD", "Mauritius Post Ltd", "Mauritius Digital Promotion Agency", "National Audit Office",
+    "National Human Rights Commission", "Equal Opportunities Commission", "National Disaster for Risk Reduction Mgt Centre",
+    "Public Bodies Appeal Tribunal", "Ombudsman Office", "Ombudsman for Children Office", "Revenue & Valuation Appeal Tribunal",
+    "Electoral Commissioners Office", "National Empowerment Foundation", "Mauritius Tourism Promotion Authority",
+    "Leal Communications & Informatics", "ICTA", "Mauritius Fire and Rescue Services", "Mauritius Standard Bureau",
+    "Indian Ocean Commission", "Financial Intelligence Unit", "CBRD", "SME Registration Unit", "Government Information Services",
+    "Independent Police Complaints Commission", "Counter Terrorism Unit", "Law Reform Commission", "MPI Phoenix", "Bank of Mauritius",
+    "SafeCity", "Work Permit", "Mauritas", "MNIC", "Dept of Continental Shelf and Maritime Zones Administration and Exploration",
+    "CERT-MU", "MRA", "Cabinet Office", "Intellectual Property Office (IPO)", "Registry of Associations", "World Hindi Secretariat",
+    "MVL", "Chief Whip office", "SSRN Hospital", "HRDC", "MIH/PAMPLEMOUSSES", "Legal Metrology", "NEF", "National Coast Guard",
+    "site visit to schools/college regarding connectivity", "Solid Waste Management Division", "Road safety Observatory", "Agileum",
+    "TMRSU", "Ispace Technologies Ltd.", "Visitation RCA", "Site Visit of MCC", "Albion Fisheries", "Police IT UNIT",
+    "Nelson Mandela Centre", "University of Mauritius", "METISS Site Visit", "Crime Record Office", "Ombudsperson for Financial Services",
+    "polytechnics Mauritius", "ELUAT", "NTA", "Financial Services Commission", "ARC-MOFED", "New Supreme Court", "Beach Authority",
+    "Simadree Virahsawmy SSS - Site Readiness for By electionBy election 2019", "Chinese Embassy", "Petite Riviere CHC", "WMA",
+    "MGI", "National Sanctions Secretariat", "Victoria Hospital", "ENT Hospital", "Water Resources Unit", "Mauritius Housing Corporation",
+    "POWC", "Mauritius Telecoms", "ICAC", "University of Mauritius", "University of Technology, Mauritius", "Open University of Mauritius",
+    "Mauritius Examination Syndicate", "Mauritius Institute of Education", "Flacq Hopital", "J Nehru Hopital", "Dr A G Jeetoo Hospital",
+    "Human rights Division", "NSIF", "Ombudsperson for Children", "Economic Development Board", "Tourism Authority", "Airport of Mauritius",
+    "Central Health Lab", "National Library", "National Heritage Fund", "Civil Service College", "National Environmental Lab",
+    "Ispace Technologies Ltd", "Higher Education Commission", "Rehabilitation Youth Centre", "Central Supermarket , Q bornes",
+    "University of Mascareignes", "Gambling Regulatory Authority", "National Plant Protection Office", "UNDP", "Mauritius Ports Authority",
+    "State Informatics Limited", "Road Development Authority", "EWF", "Family Planning welfare Association", "Mexa"
+];
 
 const ProjectForm = ({ isEdit = false }) => {
     const [form] = Form.useForm();
@@ -177,7 +224,25 @@ const ProjectForm = ({ isEdit = false }) => {
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Ministry / Dept</span>}
                                 rules={[{ required: true, message: 'Ministry/Dept required' }]}
                             >
-                                <Input placeholder="Responsible governmental body..." className="h-12 !rounded-xl" />
+                                <AutoComplete
+                                    className="h-12 w-full !rounded-xl"
+                                    popupMatchSelectWidth={true}
+                                    placeholder="Search or free-text..."
+                                    options={[
+                                        {
+                                            label: <div className="font-bold text-blue-500 uppercase tracking-widest text-[10px] py-1">Ministries</div>,
+                                            options: ministries.map(m => ({ value: m, label: m }))
+                                        },
+                                        {
+                                            label: <div className="font-bold text-emerald-500 uppercase tracking-widest text-[10px] py-1 mt-2">Departments/Others</div>,
+                                            options: departments.map(d => ({ value: d, label: d }))
+                                        }
+                                    ]}
+                                    filterOption={(inputValue, option) => {
+                                        if (option.options) return true; // Keep groups
+                                        return option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1;
+                                    }}
+                                />
                             </Form.Item>
                         </Col>
                     </Row>
@@ -197,7 +262,19 @@ const ProjectForm = ({ isEdit = false }) => {
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Lead Programme Manager</span>}
                                 rules={[{ required: true, message: 'Required' }]}
                             >
-                                <Input placeholder="Lead oversight officer..." className="h-12 !rounded-xl" />
+                                <Select placeholder="Select Lead Programme Manager..." className="h-12 !rounded-xl">
+                                    <Option value="Jhurree M">Jhurree M</Option>
+                                    <Option value="Pavaday G">Pavaday G</Option>
+                                    <Option value="Beeharry A">Beeharry A</Option>
+                                    <Option value="Baguant K">Baguant K</Option>
+                                    <Option value="Betchoo H">Betchoo H</Option>
+                                    <Option value="Lam Cham Kee V">Lam Cham Kee V</Option>
+                                    <Option value="Peeraully-Doarika N">Peeraully-Doarika N</Option>
+                                    <Option value="Beerbul S">Beerbul S</Option>
+                                    <Option value="Putteeraj S">Putteeraj S</Option>
+                                    <Option value="Mohabeer P">Mohabeer P</Option>
+                                    <Option value="Chitamun T">Chitamun T</Option>
+                                </Select>
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={12}>
@@ -206,7 +283,19 @@ const ProjectForm = ({ isEdit = false }) => {
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Programme Manager</span>}
                                 rules={[{ required: true, message: 'Required' }]}
                             >
-                                <Input placeholder="Operations manager..." className="h-12 !rounded-xl" />
+                                <Select placeholder="Select Programme Manager..." className="h-12 !rounded-xl">
+                                    <Option value="Goburdhone P">Goburdhone P</Option>
+                                    <Option value="Jeetoo K">Jeetoo K</Option>
+                                    <Option value="Gooljar-Busgeet R">Gooljar-Busgeet R</Option>
+                                    <Option value="Beethue N">Beethue N</Option>
+                                    <Option value="Luckun R">Luckun R</Option>
+                                    <Option value="Ramparsad G">Ramparsad G</Option>
+                                    <Option value="Lutchman D">Lutchman D</Option>
+                                    <Option value="Ramful D">Ramful D</Option>
+                                    <Option value="Ramdoyal Y">Ramdoyal Y</Option>
+                                    <Option value="Taukoordass B">Taukoordass B</Option>
+                                    <Option value="Ujoodha N">Ujoodha N</Option>
+                                </Select>
                             </Form.Item>
                         </Col>
                     </Row>
@@ -245,7 +334,13 @@ const ProjectForm = ({ isEdit = false }) => {
                                     }),
                                 ]}
                             >
-                                <DatePicker className="w-full h-12 !rounded-xl" />
+                                <DatePicker
+                                    className="w-full h-12 !rounded-xl"
+                                    disabledDate={(current) => {
+                                        const startDate = form.getFieldValue('startDate');
+                                        return startDate ? current && current < startDate.startOf('day') : false;
+                                    }}
+                                />
                             </Form.Item>
                         </Col>
                         <Col xs={24}>
@@ -254,7 +349,11 @@ const ProjectForm = ({ isEdit = false }) => {
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Project Description</span>}
                                 rules={[{ required: true, message: 'Description required' }]}
                             >
-                                <TextArea rows={3} placeholder="Project objectives and scope details..." className="!rounded-xl p-4" />
+                                <TextArea
+                                    autoSize={{ minRows: 3, maxRows: 8 }}
+                                    placeholder="Project objectives and scope details..."
+                                    className="!rounded-xl p-4"
+                                />
                             </Form.Item>
                         </Col>
                         <Col xs={24}>
@@ -263,7 +362,11 @@ const ProjectForm = ({ isEdit = false }) => {
                                 label={<span className="font-bold text-slate-400 uppercase text-[10px] tracking-widest">Status / Feedback</span>}
                                 rules={[{ required: true, message: 'Status feedback required' }]}
                             >
-                                <TextArea rows={3} placeholder="Current progress narrative and meeting highlights..." className="!rounded-xl p-4" />
+                                <TextArea
+                                    autoSize={{ minRows: 3, maxRows: 8 }}
+                                    placeholder="Current progress narrative and meeting highlights..."
+                                    className="!rounded-xl p-4"
+                                />
                             </Form.Item>
                         </Col>
                     </Row>
