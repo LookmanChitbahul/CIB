@@ -213,13 +213,41 @@ exports.updateProject = async (req, res) => {
 exports.deleteProject = async (req, res) => {
     try {
         const { id } = req.params;
+        const project = await prisma.project.findUnique({ where: { id: parseInt(id) } });
         await prisma.project.delete({
             where: { id: parseInt(id) },
         });
 
-        res.status(204).send();
+        res.status(200).json(project); // Return deleted data for potential undo
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete project', details: error.message });
+    }
+};
+
+exports.restoreProject = async (req, res) => {
+    try {
+        const data = req.body;
+        // Strip out ID and timestamps to allow recreations
+        delete data.id;
+        delete data.createdAt;
+        delete data.updatedAt;
+
+        if (data.startDate) data.startDate = new Date(data.startDate);
+        if (data.completionDate) data.completionDate = new Date(data.completionDate);
+        if (data.pid) data.pid = parseInt(data.pid);
+
+        const project = await prisma.project.create({ data });
+
+        await prisma.projectHistory.create({
+            data: {
+                projectId: project.id,
+                snapshot: project,
+            }
+        });
+
+        res.status(201).json(project);
+    } catch (error) {
+        res.status(400).json({ error: 'Restore failed', details: error.message });
     }
 };
 

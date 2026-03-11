@@ -81,7 +81,7 @@ const SimpleChatbot = () => {
                 history: chatHistory
             });
 
-            const botResponse = response.data.text;
+            const botResponse = response.text;
             setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
         } catch (error) {
             console.error("Chat Error:", error);

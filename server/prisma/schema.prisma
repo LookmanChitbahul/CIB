@@ -48,3 +48,33 @@ model ProjectHistory {
   snapshot       Json     // Stores all field values at the time of modification
   modifiedAt     DateTime @default(now())
 }
+
+model Ministry {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PersonnelRole {
+  LEAD_PM
+  PM
+}
+
+model Personnel {
+  id        Int           @id @default(autoincrement())
+  name      String        @unique
+  role      PersonnelRole
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}

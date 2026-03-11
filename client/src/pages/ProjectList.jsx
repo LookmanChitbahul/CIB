@@ -18,7 +18,7 @@ import {
     FilePdfOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { getProjects, deleteProject, getProjectHistory } from '../api/client';
+import { getProjects, deleteProject, getProjectHistory, restoreProject } from '../api/client';
 import { useTheme } from '../context/ThemeContext';
 
 const ProjectList = () => {
@@ -35,23 +35,52 @@ const ProjectList = () => {
 
     const { data: projectsData, isLoading, isError } = useQuery({
         queryKey: ['projects'],
-        queryFn: async () => {
-            const res = await getProjects();
-            return res.data;
-        }
+        queryFn: getProjects
     });
 
-    const projects = projectsData?.data || [];
+    const projects = projectsData?.data || (Array.isArray(projectsData) ? projectsData : []);
 
     const scale = 1 - (fov - 70) / 100;
     const fontSize = Math.max(9, 14 * scale);
     const subFontSize = Math.max(8, 10 * scale);
     const colWidth = (base) => base * scale;
 
+    const restoreMutation = useMutation({
+        mutationFn: restoreProject,
+        onSuccess: () => {
+            messageApi.success('Matrix node restored successfully');
+            queryClient.invalidateQueries(['projects']);
+        },
+        onError: () => {
+            messageApi.error('Critical restore failure');
+        }
+    });
+
     const deleteMutation = useMutation({
         mutationFn: deleteProject,
-        onSuccess: () => {
-            messageApi.success('Project purged from matrix');
+        onSuccess: (deletedProject) => {
+            console.log('Deleted project data:', deletedProject);
+            messageApi.open({
+                type: 'success',
+                content: (
+                    <div className="flex items-center justify-between gap-4">
+                        <span>Project purged from matrix</span>
+                        <Button
+                            type="link"
+                            size="small"
+                            className="text-blue-500 font-bold p-0 h-auto"
+                            onClick={() => {
+                                restoreMutation.mutate(deletedProject);
+                                messageApi.destroy();
+                            }}
+                        >
+                            UNDO
+                        </Button>
+                    </div>
+                ),
+                duration: 4,
+            });
+            setSelectedRowKeys([]);
             queryClient.invalidateQueries(['projects']);
         },
         onError: () => {
@@ -81,7 +110,7 @@ const ProjectList = () => {
         setHistoryVisible(true);
         try {
             const res = await getProjectHistory(id);
-            setCurrentHistory(res.data);
+            setCurrentHistory(res);
         } catch (error) {
             messageApi.error('Failed to retrieve history logs');
         } finally {
@@ -402,9 +431,12 @@ const ProjectList = () => {
                             )
                     }}
                     pagination={{
-                        pageSize: 10,
+                        pageSizeOptions: ['5', '10', '20', '50'],
+                        showSizeChanger: true,
+                        showQuickJumper: true,
                         className: `px-8 py-4 font-bold ${isDarkMode ? 'pagination-dark' : ''}`,
                         position: ['bottomCenter'],
+                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} records`,
                     }}
                 />
             </div>

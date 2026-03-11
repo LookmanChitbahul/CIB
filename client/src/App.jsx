@@ -3,6 +3,7 @@ import MainLayout from './components/MainLayout';
 import Dashboard from './pages/Dashboard';
 import ProjectList from './pages/ProjectList';
 import ProjectForm from './pages/ProjectForm';
+import RegistryManagement from './pages/RegistryManagement';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="projects" element={<ProjectList />} />
           <Route path="projects/new" element={<ProjectForm />} />
           <Route path="projects/:id/edit" element={<ProjectForm />} />
+          <Route path="registry" element={<RegistryManagement />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
