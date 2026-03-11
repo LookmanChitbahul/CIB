@@ -21,10 +21,7 @@ const Dashboard = () => {
     const { isDarkMode } = useTheme();
     const { data: stats, isLoading, isError } = useQuery({
         queryKey: ['dashboard'],
-        queryFn: async () => {
-            const res = await getDashboardStats();
-            return res.data;
-        }
+        queryFn: getDashboardStats
     });
 
     if (isLoading) return (

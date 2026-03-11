@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const projectRoutes = require('./src/routes/projectRoutes');
+const registryRoutes = require('./src/routes/registryRoutes');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/projects', projectRoutes);
+app.use('/api/registry', registryRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

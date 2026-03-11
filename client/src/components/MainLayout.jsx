@@ -9,7 +9,8 @@ import {
     SunOutlined,
     MoonOutlined,
     UserOutlined,
-    BellOutlined
+    BellOutlined,
+    SettingOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -39,6 +40,11 @@ const MainLayout = () => {
             key: '/projects/new',
             icon: <PlusCircleOutlined className="text-xl" />,
             label: 'Register New',
+        },
+        {
+            key: '/registry',
+            icon: <SettingOutlined className="text-xl" />,
+            label: 'Registry Admin',
         },
     ];
 
